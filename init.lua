@@ -558,9 +558,24 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
+        -- glslls = {
+        --   cmd = {
+        --     'glslls',
+        --     '--stdin',
+        --     '--target-env',
+        --     'opengl3.3',
+        --   },
+        --   filetypes = { 'glsl', 'vert', 'frag', 'geom', 'comp' },
+        -- },
+        ocamllsp = {},
         pyright = {},
         ts_ls = {},
         cssls = {},
+        clangd = {
+          capabilities = {
+            offsetEncoding = { 'utf-16' },
+          },
+        },
         lua_ls = {
           settings = {
             Lua = {
@@ -652,16 +667,14 @@ require('lazy').setup({
         automatic_installation = false,
         handlers = {
           function(server_name)
-            local server = servers[server_name] or {}
+            -- Fetch the server table from your `servers` definition
+            local server = vim.deepcopy(servers[server_name] or {})
+
+            -- Merge capabilities
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
 
-            require('lspconfig')[server_name].setup {
-              capabilities = server.capabilities,
-              on_attach = server.on_attach,
-              settings = server.settings or {},
-              filetypes = server.filetypes,
-              cmd = server.cmd,
-            }
+            -- Pass the entire table directly to setup()
+            require('lspconfig')[server_name].setup(server)
           end,
         },
       }
@@ -700,11 +713,8 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
-        --
-        -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        ocaml = { 'ocamlformat' },
+        ocaml_interface = { 'ocamlformat' },
       },
     },
   },
@@ -878,7 +888,7 @@ require('lazy').setup({
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter-intro`
     config = function()
       -- ensure basic parser are installed
-      local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+      local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'glsl', 'cpp' }
       require('nvim-treesitter').install(parsers)
 
       ---@param buf integer
@@ -984,3 +994,13 @@ require('lazy').setup({
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+vim.filetype.add {
+  extension = {
+    vert = 'glsl',
+    frag = 'glsl',
+    geom = 'glsl',
+    comp = 'glsl',
+    tesc = 'glsl',
+    tese = 'glsl',
+  },
+}
